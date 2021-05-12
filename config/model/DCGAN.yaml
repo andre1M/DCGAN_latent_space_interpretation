@@ -1,0 +1,16 @@
+# @package _group_
+
+name: "DCGAN"
+optimizer: "adam"
+criterion: "BCEWithLogitsLoss"
+dis_key: "discriminator"
+gen_key: "generator"
+lr: 0.0002
+gen_lr_scale: 1
+weight_decay: 0
+beta1: 0.5
+beta2: 0.999
+h_dim: 100
+expansion: 32
+compression: 32
+h_sample_size: 36

@@ -1,0 +1,15 @@
+# @package _group_
+
+name: "encoder"
+optimizer: "adam"
+criterion: "MSELoss"
+enc_key: "encoder"
+dec_key: "decoder"
+lr: 0.001
+weight_decay: 0
+beta1: 0.9
+beta2: 0.999
+num_layers: 2
+expansion: 32
+compression: 32
+dec_checkpoint: "DCGAN"

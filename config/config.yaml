@@ -1,0 +1,7 @@
+defaults:
+  - model: "DCGAN"
+
+batch_size: 256
+num_epochs: 150
+h_dim: 100
+seed: 11
