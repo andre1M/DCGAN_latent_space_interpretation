@@ -2,14 +2,16 @@
 
 name: "encoder"
 optimizer: "adam"
-criterion: "MSELoss"
-enc_key: "encoder"
-dec_key: "decoder"
-lr: 0.001
+criterion: "BCEWithLogitsLoss"
+gen_key: "generator"
+dis_key: "discriminator"
+lr: 0.0003
+gen_lr_scale: 1
 weight_decay: 0
-beta1: 0.9
+beta1: 0.7
 beta2: 0.999
-num_layers: 2
+num_layers: 3
 expansion: 32
 compression: 32
+lambda_l1: 100
 dec_checkpoint: "DCGAN"

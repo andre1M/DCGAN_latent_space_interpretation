@@ -1,7 +1,8 @@
 from modules.global_vars import DEVICE, CHECKPOINTS
-from modules.models.alt_dcgan import Generator, Discriminator
-from modules.models.encoder import Encoder
-from modules.train_routines import train_gan, train_encoder
+from modules.models.dcgan_v3 import Generator, Discriminator
+from modules.models.encoder_v2 import GeneratorEnc, DiscriminatorEnc
+from modules.train_routines import train_gan, train_encoder_v2
+from modules.models.sim_annealing import solve as sa_solve
 
 from omegaconf import DictConfig
 from torch import nn, optim
@@ -23,17 +24,17 @@ def get_optimizer(
         model: Union[nn.Module, Dict[str, nn.Module]]
 ) -> Union[optim.Optimizer, Dict[str, optim.Optimizer]]:
     # unique encoder part
-    if cfg.name == "encoder":
-        if cfg.optimizer == "adam":
-            optimizer = optim.Adam(
-                params=model.parameters(),
-                lr=cfg.lr,
-                weight_decay=cfg.weight_decay,
-                betas=(cfg.beta1, cfg.beta2)
-            )
-        else:
-            raise NotImplementedError
-        return optimizer
+    # if cfg.name == "encoder":
+    #     if cfg.optimizer == "adam":
+    #         optimizer = optim.Adam(
+    #             params=model.parameters(),
+    #             lr=cfg.lr,
+    #             weight_decay=cfg.weight_decay,
+    #             betas=(cfg.beta1, cfg.beta2)
+    #         )
+    #     else:
+    #         raise NotImplementedError
+    #     return optimizer
 
     if cfg.optimizer == "adam":
         if type(model) == dict:
@@ -46,6 +47,7 @@ def get_optimizer(
                         weight_decay=cfg.weight_decay,
                         betas=(cfg.beta1, cfg.beta2),
                     )
+                    continue
                 optimizer[key] = optim.Adam(
                     params=model[key].parameters(),
                     lr=cfg.lr,
@@ -90,15 +92,25 @@ def get_model(cfg: DictConfig) -> Union[nn.Module, Dict[str, nn.Module]]:
         for key in model:
             model[key].init_weights()
     elif cfg.model.name == "encoder":
-        model = Encoder(
-            in_channels=1,
-            out_channels=1,
-            expansion=cfg.model.expansion,
-            compression=cfg.model.compression,
-            n_layers=cfg.model.num_layers,
-            h_dim=cfg.h_dim
+        model = {
+            cfg.model.gen_key: GeneratorEnc(
+                1, 1, cfg.model.compression, cfg.model.expansion, cfg.model.num_layers, cfg.h_dim
+            ),
+            cfg.model.dis_key: DiscriminatorEnc(2, cfg.model.compression).to(DEVICE)
+        }
+        # model = Encoder(
+        #     in_channels=1,
+        #     out_channels=1,
+        #     expansion=cfg.model.expansion,
+        #     compression=cfg.model.compression,
+        #     n_layers=cfg.model.num_layers,
+        #     h_dim=cfg.h_dim
+        # )
+        model[cfg.model.gen_key].decoder = load_weights(
+            model[cfg.model.gen_key].decoder,
+            cfg
         )
-        model.decoder = load_weights(model.decoder, cfg)
+        model[cfg.model.gen_key].decoder.freeze_weights()
     else:
         raise NotImplementedError
 
@@ -109,6 +121,13 @@ def get_train_func(cfg: DictConfig) -> Callable:
     if cfg.name == "DCGAN":
         return train_gan
     elif cfg.name == "encoder":
-        return train_encoder
+        return train_encoder_v2
+    else:
+        raise NotImplementedError
+
+
+def get_solve_func(cfg: DictConfig) -> Callable:
+    if cfg.name == "simulated_annealing":
+        return sa_solve
     else:
         raise NotImplementedError

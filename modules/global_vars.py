@@ -13,3 +13,6 @@ CHECKPOINTS = OUTPUT_ROOT / "checkpoints"
 CHECKPOINTS.mkdir(parents=True, exist_ok=True)
 
 DATA_PATH = PROJECT_ROOT / "data"
+
+
+ITER_METHODS = ['simulated_annealing']

@@ -110,6 +110,7 @@ def train_gan(
         optimizer: Dict[str, optim.Optimizer],
         run_tag: str,
         scheduler: Optional[object] = None,
+        restart: Optional[int] = None
 ) -> Dict[str, nn.Module]:
     """
     Basic train routine for GAN.
@@ -119,8 +120,9 @@ def train_gan(
     :param dataloader:
     :param criterion:
     :param optimizer:
-    :param scheduler:
     :param run_tag:
+    :param scheduler:
+    :param restart: epoch to start from
     :return:
     """
 
@@ -150,7 +152,7 @@ def train_gan(
             # cheap trick but it helps a lot
             real_img = real_img * 2 - 1
             d_real_out = model[cfg.model.dis_key](real_img.to(DEVICE))
-            d_real_loss = real_loss(d_real_out, criterion, False)
+            d_real_loss = real_loss(d_real_out, criterion, True)
 
             # 2. Generate fake images
             h = generate_noise(size=(cfg.batch_size, cfg.model.h_dim))
@@ -158,7 +160,7 @@ def train_gan(
 
             # Compute the discriminator loss on fake images and total loss
             d_fake_out = model[cfg.model.dis_key](fake_images)
-            d_fake_loss = fake_loss(d_fake_out, criterion, False)
+            d_fake_loss = fake_loss(d_fake_out, criterion, True)
             d_loss = d_real_loss + d_fake_loss
 
             # 3. Backpropagation
@@ -178,7 +180,7 @@ def train_gan(
             # with flipped labels
             d_fake_out = model[cfg.model.dis_key](fake_images).to(DEVICE)
             # use real loss to flip labels
-            g_loss = real_loss(d_fake_out, criterion, False)
+            g_loss = real_loss(d_fake_out, criterion, True)
 
             # 3. Backpropagation
             optimizer[cfg.model.gen_key].zero_grad()
@@ -236,7 +238,7 @@ def train_gan(
     return model
 
 
-def train_encoder(
+def train_encoder_v1(
         cfg: DictConfig,
         model: nn.Module,
         dataloader: DataLoader,
@@ -244,6 +246,7 @@ def train_encoder(
         optimizer: optim.Optimizer,
         run_tag: str,
         scheduler: Optional[object] = None,
+        restart: Optional[int] = None
 ) -> nn.Module:
     """
     Basic train routine for GAN.
@@ -253,14 +256,28 @@ def train_encoder(
     :param dataloader:
     :param criterion:
     :param optimizer:
-    :param scheduler:
     :param run_tag:
+    :param scheduler:
+    :param restart:
     :return:
     """
 
     writer = SummaryWriter(OUTPUT_ROOT)
 
     fixed_img = next(iter(dataloader))[0]
+
+    sample_grid = torchvision.utils.make_grid(
+        tensor=fixed_img,
+        nrow=cfg.batch_size // 8,
+        normalize=True
+    )
+    writer.add_image(
+        tag="Encoder/Real_image_samples",
+        img_tensor=sample_grid,
+        global_step=1
+    )
+
+    del sample_grid
 
     # ensure model are in proper mode
     model.train()
@@ -326,13 +343,158 @@ def train_encoder(
             img_tensor=sample_grid,
             global_step=epoch + 1
         )
+
+        save_model(model, epoch, cfg.model.name)
+
+    writer.close()
+
+    return model
+
+
+def train_encoder_v2(
+        cfg: DictConfig,
+        model: Dict[str, nn.Module],
+        dataloader: DataLoader,
+        criterion: nn.Module,
+        optimizer: Dict[str, optim.Optimizer],
+        run_tag: str,
+        scheduler: Optional[object] = None,
+        restart: Optional[int] = None
+) -> Dict[str, nn.Module]:
+    """
+    Basic train routine for GAN.
+
+    :param cfg:
+    :param model:
+    :param dataloader:
+    :param criterion:
+    :param optimizer:
+    :param run_tag:
+    :param scheduler:
+    :param restart:
+    :return:
+    """
+
+    writer = SummaryWriter(OUTPUT_ROOT)
+
+    fixed_img = next(iter(dataloader))[0]
+
+    sample_grid = torchvision.utils.make_grid(
+        tensor=fixed_img,
+        nrow=cfg.batch_size // 8,
+        normalize=True
+    )
+    writer.add_image(
+        tag="Encoder/Real_image_samples",
+        img_tensor=sample_grid,
+        global_step=1
+    )
+
+    del sample_grid
+
+    criterion_l1 = nn.L1Loss()
+
+    # ensure model are in proper mode
+    model[cfg.model.gen_key].train()
+    model[cfg.model.dis_key].train()
+
+    iter_count = 0
+
+    for epoch in range(cfg.num_epochs):
+        d_running_loss = 0.0
+        g_running_loss = 0.0
+
+        print("Epoch {}/{}".format(epoch + 1, cfg.num_epochs))
+        print('-' * 15)
+
+        for real_img, _ in tqdm(dataloader):
+
+            # ============================================ #
+            #            TRAIN THE DISCRIMINATOR           #
+            # ============================================ #
+            model[cfg.model.dis_key].requires_grad_(True)
+            # 1.Generate pairs of real-fake and real-real images
+            # cheap trick but it helps a lot
+            real_img = real_img * 2 - 1
+            real_img = real_img.to(DEVICE)
+            fake_images = model[cfg.model.gen_key](real_img).to(DEVICE)
+            fake_pairs = torch.cat((real_img, fake_images), 1)
+            real_pairs = torch.cat((real_img, real_img), 1)
+
+            # 2. Make predictions
+            d_fake_out = model[cfg.model.dis_key](fake_pairs)
+            d_real_out = model[cfg.model.dis_key](real_pairs)
+
+            # 3. Compute loss
+            d_real_loss = real_loss(d_fake_out, criterion, True)
+            d_fake_loss = fake_loss(d_real_out, criterion, True)
+            d_loss = (d_real_loss + d_fake_loss) / 2
+
+            # 4. Backpropagation
+            optimizer[cfg.model.dis_key].zero_grad()
+            d_loss.backward()
+            optimizer[cfg.model.dis_key].step()
+
+            # ========================================= #
+            #            TRAIN THE GENERATOR            #
+            # ========================================= #
+            model[cfg.model.dis_key].requires_grad_(False)
+            # 1. Generate fake images and make real-fake pairs
+            fake_images = model[cfg.model.gen_key](real_img).to(DEVICE)
+            fake_pairs = torch.cat((real_img, fake_images), 1)
+
+            # 2. Make predictions and compute loss
+            d_fake_out = model[cfg.model.dis_key](fake_pairs)
+            g_loss_l1 = criterion_l1(real_img, fake_images)
+            g_loss = real_loss(d_fake_out, criterion, True) + \
+                g_loss_l1 * cfg.model.lambda_l1
+
+            # 3. Backpropagation
+            optimizer[cfg.model.gen_key].zero_grad()
+            g_loss.backward()
+            optimizer[cfg.model.gen_key].step()
+
+            # ========================================= #
+            #            COMPUTE STATISTICS             #
+            # ========================================= #
+
+            d_running_loss += d_loss.item() * cfg.batch_size
+            g_running_loss += g_loss.item() * cfg.batch_size
+
+            iter_count += 1
+            writer.add_scalars(
+                main_tag=f"Loss_{cfg.model.name}/{run_tag}",
+                tag_scalar_dict={"discriminator_real": d_real_loss.item(),
+                                 "discriminator_fake": d_fake_loss.item(),
+                                 "generator": g_loss.item()},
+                global_step=iter_count
+            )
+
+        # compute epoch statistics and save to the tensorboard
+        # noinspection PyTypeChecker
+        d_epoch_loss = d_running_loss / len(dataloader.dataset)
+        # noinspection PyTypeChecker
+        g_epoch_loss = g_running_loss / len(dataloader.dataset)
+        writer.add_scalars(
+            main_tag=f"Mean_epoch_loss_{cfg.model.name}/{run_tag}",
+            tag_scalar_dict={"discriminator": d_epoch_loss,
+                             "generator": g_epoch_loss},
+            global_step=epoch + 1
+        )
+
+        # generate sample fake images and save to the tensorboard
+        model[cfg.model.gen_key].eval()
+        with torch.no_grad():
+            fake_image_samples = model[cfg.model.gen_key](fixed_img)
+        model[cfg.model.gen_key].train()
+
         sample_grid = torchvision.utils.make_grid(
-            tensor=fixed_img,
+            tensor=fake_image_samples,
             nrow=cfg.batch_size // 8,
             normalize=True
         )
         writer.add_image(
-            tag="Encoder/Real_image_samples",
+            tag="Encoder/Fake_image_samples",
             img_tensor=sample_grid,
             global_step=epoch + 1
         )
