@@ -41,13 +41,22 @@ def get_optimizer(
             optimizer = dict()
             for key in model:
                 if key == cfg.gen_key:
-                    optimizer[key] = optim.Adam(
-                        params=model[key].parameters(),
-                        lr=cfg.lr * cfg.gen_lr_scale,
-                        weight_decay=cfg.weight_decay,
-                        betas=(cfg.beta1, cfg.beta2),
-                    )
-                    continue
+                    if cfg.name == "encoder":
+                        optimizer[key] = optim.Adam(
+                            params=model[key].encoder.parameters(),
+                            lr=cfg.lr * cfg.gen_lr_scale,
+                            weight_decay=cfg.weight_decay,
+                            betas=(cfg.beta1, cfg.beta2),
+                        )
+                        continue
+                    else:
+                        optimizer[key] = optim.Adam(
+                            params=model[key].parameters(),
+                            lr=cfg.lr * cfg.gen_lr_scale,
+                            weight_decay=cfg.weight_decay,
+                            betas=(cfg.beta1, cfg.beta2),
+                        )
+                        continue
                 optimizer[key] = optim.Adam(
                     params=model[key].parameters(),
                     lr=cfg.lr,
@@ -110,7 +119,7 @@ def get_model(cfg: DictConfig) -> Union[nn.Module, Dict[str, nn.Module]]:
             model[cfg.model.gen_key].decoder,
             cfg
         )
-        model[cfg.model.gen_key].decoder.freeze_weights()
+        # model[cfg.model.gen_key].decoder.freeze_weights()
     else:
         raise NotImplementedError
 
