@@ -1,5 +1,5 @@
 defaults:
-  - model: "encoder"
+  - model: "simulated_annealing"
 
 batch_size: 256
 num_epochs: 300

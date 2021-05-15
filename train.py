@@ -13,12 +13,13 @@ def run(cfg: DictConfig):
     torch.manual_seed(cfg.seed)
     dataloader = get_dataloader(cfg)
     model = get_model(cfg)
-    optimizer = get_optimizer(cfg.model, model)
     criterion = get_criterion(cfg.model)
     run_tag = get_run_tag(cfg.model)
-    if cfg.model in ITER_METHODS:
+    if cfg.model.name in ITER_METHODS:
         solve = get_solve_func(cfg.model)
-        solve(cfg, model, dataloader, run_tag)
+        solve(cfg, model, criterion, dataloader, run_tag)
+        return
+    optimizer = get_optimizer(cfg.model, model)
     train = get_train_func(cfg.model)
     _ = train(
         cfg=cfg,

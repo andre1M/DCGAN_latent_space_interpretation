@@ -2,3 +2,6 @@
 
 name: "simulated_annealing"
 num_samples: 10
+criterion: "MSELoss"
+expansion: 32
+dec_checkpoint: "DCGAN"

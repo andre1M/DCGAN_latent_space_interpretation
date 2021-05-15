@@ -123,6 +123,7 @@ class GeneratorEnc(nn.Module):
         out = self.encoder(x)
         out = out.unsqueeze(-1)
         out = out.unsqueeze(-1)
+        self.decoder.eval()
         out = self.decoder(out)
 
         return out

@@ -412,7 +412,7 @@ def train_encoder_v2(
             # ============================================ #
             #            TRAIN THE DISCRIMINATOR           #
             # ============================================ #
-            model[cfg.model.dis_key].requires_grad_(True)
+            # model[cfg.model.dis_key].requires_grad_(True)
             # 1.Generate pairs of real-fake and real-real images
             # cheap trick but it helps a lot
             real_img = real_img * 2 - 1
@@ -438,13 +438,13 @@ def train_encoder_v2(
             # ========================================= #
             #            TRAIN THE GENERATOR            #
             # ========================================= #
-            model[cfg.model.dis_key].requires_grad_(False)
+            # model[cfg.model.dis_key].requires_grad_(False)
             # 1. Generate fake images and make real-fake pairs
             fake_images = model[cfg.model.gen_key](real_img).to(DEVICE)
             fake_pairs = torch.cat((real_img, fake_images), 1)
 
             # 2. Make predictions and compute loss
-            d_fake_out = model[cfg.model.dis_key](fake_pairs)
+            d_fake_out = model[cfg.model.dis_key](fake_pairs.detach())
             g_loss_l1 = criterion_l1(real_img, fake_images)
             g_loss = real_loss(d_fake_out, criterion, True) + \
                 g_loss_l1 * cfg.model.lambda_l1

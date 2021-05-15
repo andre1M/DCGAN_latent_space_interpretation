@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from scipy.optimize import dual_annealing
 from omegaconf import DictConfig
+from tqdm.auto import tqdm
 from torch import nn
 import numpy as np
 import torchvision
@@ -14,10 +15,11 @@ def objective(
         guess: float,
         sample: torch.Tensor,
         model: nn.Module,
-        criterion: nn.Module
+        criterion: nn.Module,
 ) -> np.array:
-    new_sample = model(guess)
-    return criterion(new_sample, sample).numpy()
+    with torch.no_grad():
+        new_sample = model(torch.from_numpy(guess).view(1, -1, 1, 1).float())
+    return criterion(new_sample.squeeze(0), sample).detach().numpy()
 
 
 def solve(
@@ -39,17 +41,21 @@ def solve(
     """
 
     writer = SummaryWriter(OUTPUT_ROOT)
-    samples = next(iter(dataloader))
-    # [-3, 3] covers 99.7% of normally distributed values
-    bounds = np.ones(size=(cfg.h_dim, 2)) * np.array([-3, 3])
+    samples = next(iter(dataloader))[0]
+    # [-3, 3] range covers 99.7% of normally distributed values
+    bounds = np.ones((cfg.h_dim, 2)) * np.array([-3, 3])
 
-    for i, s in enumerate(samples):
+    for i, s in enumerate(tqdm(samples)):
         optimizer = dual_annealing(
             objective, bounds, (s, model, criterion), seed=cfg.seed
         )
-        fake_image = model(torch.from_numpy(optimizer.x))
+        print(optimizer.message)
+        with torch.no_grad():
+            fake_image = model(
+                torch.from_numpy(optimizer.x).view(1, -1, 1, 1).float()
+            )
         sample_grid = torchvision.utils.make_grid(
-            tensor=[s, fake_image],
+            tensor=[s, fake_image.squeeze(0)],
             nrow=1,
             normalize=True
         )
@@ -58,4 +64,3 @@ def solve(
             img_tensor=sample_grid,
             global_step=i
         )
-

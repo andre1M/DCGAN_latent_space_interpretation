@@ -6,6 +6,7 @@ from modules.models.sim_annealing import solve as sa_solve
 
 from omegaconf import DictConfig
 from torch import nn, optim
+import omegaconf
 import torch
 
 from typing import Dict, Union, Callable
@@ -88,8 +89,12 @@ def get_criterion(cfg: DictConfig) -> nn.Module:
 
 
 def get_run_tag(cfg: DictConfig) -> str:
-    return f"{cfg.name}/{cfg.optimizer}_lr={cfg.lr}_wd={cfg.weight_decay}" \
-           f"_betas=({cfg.beta1},{cfg.beta2})"
+    try:
+        tag = f"{cfg.name}/{cfg.optimizer}_lr={cfg.lr}_wd={cfg.weight_decay}" \
+              f"_betas=({cfg.beta1},{cfg.beta2})"
+    except omegaconf.errors.ConfigAttributeError:
+        tag = f"{cfg.name}/{cfg.criterion}"
+    return tag
 
 
 def get_model(cfg: DictConfig) -> Union[nn.Module, Dict[str, nn.Module]]:
@@ -119,9 +124,11 @@ def get_model(cfg: DictConfig) -> Union[nn.Module, Dict[str, nn.Module]]:
             model[cfg.model.gen_key].decoder,
             cfg
         )
-        # model[cfg.model.gen_key].decoder.freeze_weights()
+        model[cfg.model.gen_key].decoder.freeze_weights()
     else:
-        raise NotImplementedError
+        model = Generator(cfg.h_dim, cfg.model.expansion, 1).to(DEVICE)
+        model = load_weights(model, cfg)
+        model.eval()
 
     return model
 
