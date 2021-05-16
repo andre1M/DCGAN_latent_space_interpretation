@@ -49,21 +49,23 @@ class Encoder(nn.Module):
             batch_norm=True
         )
 
-        layers = list()
-        last_activation = True
-        for i in range(num_layers):
-            if i == num_layers - 1:
-                last_activation = False
-            layers.append(BasicBlock(
-                in_channels=expansion * 4,
-                out_channels=expansion * 4,
-                stride=1,
-                identity_downsample=Identity(),
-                last_activation=last_activation,
-                bias=False
-            ))
-
-        self.res_block = nn.Sequential(*layers)
+        if num_layers == 0:
+            self.res_block = Identity()
+        else:
+            layers = list()
+            last_activation = True
+            for i in range(num_layers):
+                if i == num_layers - 1:
+                    last_activation = False
+                layers.append(BasicBlock(
+                    in_channels=expansion * 4,
+                    out_channels=expansion * 4,
+                    stride=1,
+                    identity_downsample=Identity(),
+                    last_activation=last_activation,
+                    bias=False
+                ))
+            self.res_block = nn.Sequential(*layers)
 
         self.flatten_dim = expansion * 4 * 3 * 3
         self.fc = nn.Linear(self.flatten_dim, h_dim)

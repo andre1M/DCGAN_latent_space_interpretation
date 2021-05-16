@@ -1,0 +1,11 @@
+# @package _group_
+
+name: "particle_swarm"
+num_samples: 10
+criterion: "MSELoss"
+num_particles: 3000
+c1: 0.5
+c2: 0.3
+w: 0.9
+expansion: 32
+dec_checkpoint: "DCGAN"

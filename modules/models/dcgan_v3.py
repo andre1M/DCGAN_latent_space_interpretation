@@ -48,6 +48,10 @@ class Generator(nn.Module):
     def init_weights(self) -> None:
         self.apply(_weights_init)
 
+    def freeze_weights(self) -> None:
+        for name, param in self.named_parameters():
+            param.requires_grad = False
+
     def forward(self, x) -> torch.Tensor:
         out = self.t_conv1(x)
         out = self.relu(out)

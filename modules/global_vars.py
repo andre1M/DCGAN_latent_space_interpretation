@@ -15,4 +15,4 @@ CHECKPOINTS.mkdir(parents=True, exist_ok=True)
 DATA_PATH = PROJECT_ROOT / "data"
 
 
-ITER_METHODS = ['simulated_annealing']
+ITER_METHODS = ["simulated_annealing", "particle_swarm"]

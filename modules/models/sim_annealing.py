@@ -12,7 +12,7 @@ import torch
 
 
 def objective(
-        guess: float,
+        guess: np.ndarray,
         sample: torch.Tensor,
         model: nn.Module,
         criterion: nn.Module,
@@ -46,6 +46,7 @@ def solve(
     bounds = np.ones((cfg.h_dim, 2)) * np.array([-3, 3])
 
     for i, s in enumerate(tqdm(samples)):
+        s = s * 2 - 1
         optimizer = dual_annealing(
             objective, bounds, (s, model, criterion), seed=cfg.seed
         )

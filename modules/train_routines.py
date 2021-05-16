@@ -280,7 +280,7 @@ def train_encoder_v1(
     del sample_grid
 
     # ensure model are in proper mode
-    model.train()
+    model.encoder.train()
 
     iter_count = 0
 
@@ -308,8 +308,7 @@ def train_encoder_v1(
             # ========================================= #
             #            COMPUTE STATISTICS             #
             # ========================================= #
-            running_loss += loss.item() * cfg.batch_size * \
-                real_img.size(-1) * real_img.size(-2)
+            running_loss += loss.item() * cfg.batch_size
 
             iter_count += 1
             writer.add_scalar(
@@ -328,10 +327,10 @@ def train_encoder_v1(
         )
 
         # generate sample fake images and save to the tensorboard
-        model.eval()
+        model.encoder.eval()
         with torch.no_grad():
             fake_image_samples = model(fixed_img)
-        model.train()
+        model.encoder.train()
 
         sample_grid = torchvision.utils.make_grid(
             tensor=fake_image_samples,

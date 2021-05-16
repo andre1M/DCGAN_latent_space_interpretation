@@ -8,10 +8,11 @@ dis_key: "discriminator"
 lr: 0.0003
 gen_lr_scale: 1
 weight_decay: 0
-beta1: 0.7
+beta1: 0.5
 beta2: 0.999
 num_layers: 3
 expansion: 32
 compression: 32
 lambda_l1: 100
 dec_checkpoint: "DCGAN"
+version: "v1"
