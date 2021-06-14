@@ -2,22 +2,12 @@
 
 ---
 
->**Note**: `README.md` contains the full report of this work.
-I work faster using present project structure, therefore Jupyter Notebooks are not included.
-Additionally, running multiple experiments is a lot more convenient this way. 
-Exploratory data analysis is also omitted, since MNIST is well studied dataset and intended to be a "plug-and-play" solution.
+This is a learning project on GAN's. 
+It is aimed to practice model trainings and obtain a good understanding of the latent variable space.
+Major stages of the project:
 
->**Note**: I do not support this report with rigorous mathematical derivations, but rather attempting to show my understanding of the model and applied techniques. 
-
->**Note**: this is my very first project on GANs. Some parts may be rough around the edges.
-
->**Note**: I just found out that it is impossible to add several model graphs to the tensorboard. 
-To capture the most information I add the complete graph of the **Encoder V1** as it includes the Generator and the example Encoder. 
-
-This is the test task for the Deep Learning R&D Intern position at NVIDIA.
-Task consists of two major parts:
 1. Training DCGAN on MNIST dataset
-2. Effective navigation in the latent variable space with a NN and iterative optimizer
+2. Effective navigation in the latent variable space with a NN and iterative method
 
 All results and visualisations are stored as an interactive Tensorboard log.
 
@@ -325,27 +315,3 @@ In this paragraph I list a number of potential improvements to the existing solu
 - Experiment more with conditional GANs (like Pix2Pix) to extract more information from the input images and have more control over the desired output
 - Try to use gradient based methods for extracting a picture's latent representation (like cross-entropy method)
 - Add Pareto optimality criterion to the loss of the **Encoder V1** (the standard deviation of the individual loss components distribution)
-
-
-# Reflection
-
----
-
-> **Note**: this section is intended to share my feedback on this task and reflect on the obtained experiences. 
-It is meant to be rather casual, and a bit emotional :-)
-
-Well, it is genuinely exciting to finally put my hands on GANs. 
-I learned a lot about theoretical motivation for this branch of Deep Learning, as well as about practical aspects of training such models.
-It feels like GANs have a lot in common with RL, particularly with Multi-Agent RL. 
-The capabilities of this family of algorithms is inspiring, though it definitely requires a lot of research.
-What amazed me the most is that simulated annealing was able to optimize the latent input representation almost perfectly. 
-This literally blew my mind because I was convinced solving the problem this way would be impossible. 
-100-dimensional search space sounds like way too much for such optimizer.
-
-It is a bit regretful though that I didn't have a good pipeline for GANs prior to this moment. 
-A lot of things could've been done differently.
-Well, it is a well known truth: only when the project is finished you realise how it should've been done.
-
-Overall, this project happened to be a great opportunity to learn new things and try peculiar solutions to non-trivial problems.
-I genuinely enjoyed working on this one and would definitely make something else on GANs in the future.
-It was also a pleasure to read this task as it is well and clearly formulated.
